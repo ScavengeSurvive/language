@@ -1,7 +1,7 @@
-#if defined _actions_included
+#if defined _language_included
 	#endinput
 #endif
-#define _actions_included
+#define _language_included
 
 #include <string>
 #include <logger>
