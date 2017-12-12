@@ -3,6 +3,7 @@
 #endif
 #define _language_included
 
+#include <YSI\y_hooks>
 #include <string>
 #include <logger>
 
@@ -42,8 +43,15 @@ static
 	lang_TotalReplacements,
 
 	lang_Name[MAX_LANGUAGE][MAX_LANGUAGE_NAME],
-	lang_Total;
+	lang_Total,
 
+	lang_PlayerLanguage[MAX_PLAYERS];
+
+
+hook OnPlayerConnect(playerid) {
+	lang_PlayerLanguage[playerid] = 0;
+	return Y_HOOKS_CONTINUE_RETURN_1;
+}
 
 stock DefineLanguageReplacement(key[], val[]) {
 	strcat(lang_Replacements[lang_TotalReplacements][lang_repl_key], key, MAX_LANGUAGE_REPL_KEY_LEN);
@@ -496,4 +504,22 @@ stock GetLanguageID(name[]) {
 			return i;
 	}
 	return -1;
+}
+
+stock GetPlayerLanguage(playerid) {
+	if(!IsPlayerConnected(playerid)) {
+		return -1;
+	}
+
+	return lang_PlayerLanguage[playerid];
+}
+
+stock SetPlayerLanguage(playerid, language) {
+	if(!IsPlayerConnected(playerid)) {
+		return 1;
+	}
+
+	lang_PlayerLanguage[playerid] = language;
+
+	return 0;
 }
