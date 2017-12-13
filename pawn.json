@@ -5,7 +5,6 @@
         "Southclaws/samp-stdlib",
         "Zeex/amx_assembly",
         "Misiur/YSI-Includes",
-        "Southclaws/samp-logger",
-        "Zeex/samp-plugin-crashdetect/include"
+        "Southclaws/samp-logger"
     ]
 }
