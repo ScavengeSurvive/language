@@ -4,15 +4,15 @@ Provides a simple API for multi-language systems.
 
 Currently undergoing refactoring after being extracted from the SS core codebase. Not prod-ready.
 
-## Usage
+## Installation
 
-Simply add to your `pawn.json` and include:
+Simply install to your project:
 
-```json
-{
-    "dependencies": ["ScavengeSurvive/language"]
-}
+```bash
+sampctl package install ScavengeSurvive/language
 ```
+
+Include in your code and begin using the library:
 
 ```pawn
 #include <language>

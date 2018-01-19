@@ -1,3 +1,9 @@
+// built-in include guard removal
+// just in case the user has a local dependency with the same file name
+#if defined _inc_language
+    #undef _inc_language
+#endif
+// custom include-guard to ensure we don't duplicate
 #if defined _language_included
 	#endinput
 #endif
