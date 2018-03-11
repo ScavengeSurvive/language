@@ -128,7 +128,7 @@ stock LoadAllLanguages() {
 	}
 
 	// Force load English first since that's the default language.
-	default_entries = LoadLanguage(DIRECTORY_LANGUAGES DEFAULT_LANGUAGE, DEFAULT_LANGUAGE);
+	default_entries = LoadLanguage(DEFAULT_LANGUAGE, DEFAULT_LANGUAGE);
 	log("Default language (English) has %d entries.", default_entries);
 
 	if(default_entries == 0) {
@@ -147,30 +147,35 @@ stock LoadAllLanguages() {
 			entries = LoadLanguage(next_path, item);
 
 			if(entries > 0) {
-				log("Loaded language %s: %d entries, %d missing entries", item, entries, default_entries - entries);
+				log("successfully loaded language pack",
+					_s("item", item),
+					_i("entries", entries),
+					_i("missing", default_entries - entries));
 				languages++;
 			} else {
-				err("No entries loaded from language file '%s'", item);
+				err("failed to load language pack: no entries loaded",
+					_s("item", item));
 			}
 		}
 	}
 
 	dir_close(dirhandle);
 
-	log("Loaded %d languages", languages);
+	log("Loaded languages", _i("languages", languages));
 
 	return 1;
 }
 
-stock LoadLanguage(filename[], langname[]) {
+stock LoadLanguage(langname[]) {
 	if(lang_Total == MAX_LANGUAGE) {
 		err("lang_Total reached MAX_LANGUAGE",
 			_i("max", MAX_LANGUAGE));
-		return 0;
+		return -1;
 	}
 
 	new
-		File:f = fopen(filename, io_read),
+		filename[256],
+		File:f,
 		line[MAX_LANGUAGE_KEY_LEN + 1 + MAX_LANGUAGE_ENTRY_LENGTH],
 		linenumber = 1,
 		bool:skip,
@@ -180,10 +185,13 @@ stock LoadLanguage(filename[], langname[]) {
 		key[MAX_LANGUAGE_KEY_LEN],
 		index;
 
+	format(filename, sizeof(filename), DIRECTORY_LANGUAGES"%s", langname);
+	f = fopen(filename, io_read);
+
 	if(!f) {
 		err("unable to open file",
 			_s("filename", filename));
-		return 0;
+		return -2;
 	}
 
 	while(fread(f, line)) {
@@ -262,7 +270,7 @@ stock LoadLanguage(filename[], langname[]) {
 	fclose(f);
 
 	if(lang_TotalEntries[lang_Total] == 0) {
-		return 0;
+		return -3;
 	}
 
 	strcat(lang_Name[lang_Total], langname, MAX_LANGUAGE_NAME);
@@ -303,7 +311,7 @@ stock LoadLanguage(filename[], langname[]) {
 
 	lang_Total++;
 
-	return index;
+	return index + 1;
 }
 
 _doReplace(input[], output[]) {
