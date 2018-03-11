@@ -1,7 +1,7 @@
 // built-in include guard removal
 // just in case the user has a local dependency with the same file name
 #if defined _inc_language
-    #undef _inc_language
+	#undef _inc_language
 #endif
 // custom include-guard to ensure we don't duplicate
 #if defined _language_included
@@ -13,20 +13,61 @@
 #include <string>
 #include <logger>
 
-#define ls(%0,%1) GetLanguageString(GetPlayerLanguage(%0), %1)
 
-#define DIRECTORY_LANGUAGES			"languages/"
-#define MAX_LANGUAGE				(12)
-#define MAX_LANGUAGE_ENTRIES		(1024)
-#define MAX_LANGUAGE_KEY_LEN		(12)
-#define MAX_LANGUAGE_ENTRY_LENGTH	(768)
-#define MAX_LANGUAGE_NAME			(32)
-#define MAX_LANGUAGE_REPLACEMENTS	(48)
-#define MAX_LANGUAGE_REPL_KEY_LEN	(32)
-#define MAX_LANGUAGE_REPL_VAL_LEN	(32)
+// the directory language data is stored
+#if !defined DIRECTORY_LANGUAGES
+	#define DIRECTORY_LANGUAGES "languages/"
+#endif
 
+// the default language to fall back to on missing keys
+#if !defined DEFAULT_LANGUAGE
+	#define DEFAULT_LANGUAGE "English"
+#endif
+
+// the total amount of languages
+#if !defined MAX_LANGUAGE
+	#define MAX_LANGUAGE (12)
+#endif
+
+// the total amount of entries per language
+#if !defined MAX_LANGUAGE_ENTRIES
+	#define MAX_LANGUAGE_ENTRIES (1024)
+#endif
+
+// the maximum length of a language key
+#if !defined MAX_LANGUAGE_KEY_LEN
+	#define MAX_LANGUAGE_KEY_LEN (12)
+#endif
+
+// the maximum length of a language text entry
+#if !defined MAX_LANGUAGE_ENTRY_LENGTH
+	#define MAX_LANGUAGE_ENTRY_LENGTH (768)
+#endif
+
+// name limit for a language
+#if !defined MAX_LANGUAGE_NAME
+	#define MAX_LANGUAGE_NAME (32)
+#endif
+
+// maximum amount of string aliases
+#if !defined MAX_LANGUAGE_ALIASES
+	#define MAX_LANGUAGE_ALIASES (48)
+#endif
+
+
+// lengths for alias key/value
+#define MAX_LANGUAGE_ALIAS_KEY_LEN	(32)
+#define MAX_LANGUAGE_ALIAS_VAL_LEN	(32)
+
+// delimiter for language data files
 #define DELIMITER_CHAR				'='
+
+// size for alphabet map - base is English
 #define ALPHABET_SIZE				(26)
+
+// @L is shorthand for getting a language string for a given player
+// parameters are: %0:playerid, %1:key
+#define @L(%0,%1) GetLanguageString(GetPlayerLanguage(%0), %1)
 
 
 enum e_LANGUAGE_ENTRY_DATA {
@@ -34,9 +75,9 @@ enum e_LANGUAGE_ENTRY_DATA {
 	lang_val[MAX_LANGUAGE_ENTRY_LENGTH]
 }
 
-enum e_LANGUAGE_TAG_REPLACEMENT_DATA {
-	lang_repl_key[MAX_LANGUAGE_REPL_KEY_LEN],
-	lang_repl_val[MAX_LANGUAGE_REPL_VAL_LEN]
+enum e_LANGUAGE_TAG_ALIAS_DATA {
+	lang_alias_key[MAX_LANGUAGE_ALIAS_KEY_LEN],
+	lang_alias_val[MAX_LANGUAGE_ALIAS_VAL_LEN]
 }
 
 
@@ -45,7 +86,7 @@ static
 	lang_TotalEntries[MAX_LANGUAGE],
 	lang_AlphabetMap[MAX_LANGUAGE][ALPHABET_SIZE],
 
-	lang_Replacements[MAX_LANGUAGE_REPLACEMENTS][e_LANGUAGE_TAG_REPLACEMENT_DATA],
+	lang_Replacements[MAX_LANGUAGE_ALIASES][e_LANGUAGE_TAG_ALIAS_DATA],
 	lang_TotalReplacements,
 
 	lang_Name[MAX_LANGUAGE][MAX_LANGUAGE_NAME],
@@ -60,8 +101,8 @@ hook OnPlayerConnect(playerid) {
 }
 
 stock DefineLanguageReplacement(key[], val[]) {
-	strcat(lang_Replacements[lang_TotalReplacements][lang_repl_key], key, MAX_LANGUAGE_REPL_KEY_LEN);
-	strcat(lang_Replacements[lang_TotalReplacements][lang_repl_val], val, MAX_LANGUAGE_REPL_VAL_LEN);
+	strcat(lang_Replacements[lang_TotalReplacements][lang_alias_key], key, MAX_LANGUAGE_ALIAS_KEY_LEN);
+	strcat(lang_Replacements[lang_TotalReplacements][lang_alias_val], val, MAX_LANGUAGE_ALIAS_VAL_LEN);
 
 	lang_TotalReplacements++;
 }
@@ -87,7 +128,7 @@ stock LoadAllLanguages() {
 	}
 
 	// Force load English first since that's the default language.
-	default_entries = LoadLanguage(DIRECTORY_LANGUAGES"English", "English");
+	default_entries = LoadLanguage(DIRECTORY_LANGUAGES DEFAULT_LANGUAGE, DEFAULT_LANGUAGE);
 	log("Default language (English) has %d entries.", default_entries);
 
 	if(default_entries == 0) {
@@ -97,7 +138,7 @@ stock LoadAllLanguages() {
 
 	while(dir_list(dirhandle, item, type)) {
 		if(type == FM_FILE) {
-			if(!strcmp(item, "English"))
+			if(!strcmp(item, DEFAULT_LANGUAGE))
 				continue;
 
 			next_path[0] = EOS;
@@ -275,9 +316,9 @@ _doReplace(input[], output[]) {
 		if(in_tag) {
 			if(input[i] == '}') {
 				for(new j; j < lang_TotalReplacements; ++j) {
-					if(!strcmp(input[tag_start], lang_Replacements[j][lang_repl_key], false, i - tag_start)) {
-						for(new k; lang_Replacements[j][lang_repl_val][k] != 0 && output_idx < MAX_LANGUAGE_ENTRY_LENGTH; ++k)
-							output[output_idx++] = lang_Replacements[j][lang_repl_val][k];
+					if(!strcmp(input[tag_start], lang_Replacements[j][lang_alias_key], false, i - tag_start)) {
+						for(new k; lang_Replacements[j][lang_alias_val][k] != 0 && output_idx < MAX_LANGUAGE_ENTRY_LENGTH; ++k)
+							output[output_idx++] = lang_Replacements[j][lang_alias_val][k];
 
 						break;
 					}

@@ -1,4 +1,6 @@
 {
+    "user": "ScavengeSurvive",
+    "repo": "language",
     "entry": "test.pwn",
     "output": "test.amx",
     "dependencies": [
