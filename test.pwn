@@ -10,22 +10,22 @@ TestInit:main() {
 	logger_debug("language", true);
 }
 
-Test:LoadLanguage() {
+Test:InitLanguageFromFile() {
 	new ret;
 
-	ret = LoadLanguage("English");
+	ret = InitLanguageFromFile("English");
 	ASSERT(ret == 1);
 
-	ret = LoadLanguage("NonExistent");
+	ret = InitLanguageFromFile("NonExistent");
 	ASSERT(ret == -2);
 
-	ret = LoadLanguage("Empty");
+	ret = InitLanguageFromFile("Empty");
 	ASSERT(ret == -3);
 
-	ret = LoadLanguage("Espanol");
+	ret = InitLanguageFromFile("Espanol");
 	ASSERT(ret == 1);
 
-	ret = LoadLanguage("English");
+	ret = InitLanguageFromFile("English");
 	ASSERT(ret == -1);
 }
 

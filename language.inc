@@ -56,14 +56,16 @@
 
 
 // lengths for alias key/value
-#define MAX_LANGUAGE_ALIAS_KEY_LEN	(32)
-#define MAX_LANGUAGE_ALIAS_VAL_LEN	(32)
+#define MAX_LANGUAGE_ALIAS_KEY_LEN (32)
+#define MAX_LANGUAGE_ALIAS_VAL_LEN (32)
 
 // delimiter for language data files
-#define DELIMITER_CHAR				'='
+#define DELIMITER_CHAR '='
 
 // size for alphabet map - base is English
-#define ALPHABET_SIZE				(26)
+#define ALPHABET_SIZE (26)
+
+#define INVALID_LANGUAGE_ID (-1)
 
 // @L is shorthand for getting a language string for a given player
 // parameters are: %0:playerid, %1:key
@@ -71,8 +73,8 @@
 
 
 enum e_LANGUAGE_ENTRY_DATA {
-	lang_key[MAX_LANGUAGE_KEY_LEN],
-	lang_val[MAX_LANGUAGE_ENTRY_LENGTH]
+	LANG_KEY[MAX_LANGUAGE_KEY_LEN],
+	LANG_VALUE[MAX_LANGUAGE_ENTRY_LENGTH]
 }
 
 enum e_LANGUAGE_TAG_ALIAS_DATA {
@@ -107,6 +109,141 @@ stock DefineLanguageReplacement(key[], val[]) {
 	lang_TotalReplacements++;
 }
 
+stock InitLanguage(name[]) {
+	if(lang_Total == MAX_LANGUAGE) {
+		err("lang_Total reached MAX_LANGUAGE",
+			_i("max", MAX_LANGUAGE));
+		return INVALID_LANGUAGE_ID;
+	}
+
+	strcat(lang_Name[lang_Total], name, MAX_LANGUAGE_NAME);
+
+	return lang_Total++;
+}
+
+stock InitLanguageFromFile(langname[]) {
+	new ret = initLanguageFromFile(langname);
+	// if we had a failure that wasn't caused by InitLanguage
+	// roll back lang_Total so a slot isn't used up.
+	if(ret < -1) {
+		lang_Total--;
+	}
+
+	return ret;
+}
+
+stock AddLanguageEntry(languageid, key[], value[]) {
+	if(!(0 <= languageid < lang_Total)) {
+		err("attempt to add entry to invalid language",
+			_i("languageid", languageid),
+			_s("key", key),
+			_s("value", value));
+		return 1;
+	}
+
+	new index = lang_TotalEntries[languageid];
+
+	if(lang_TotalEntries[languageid] >= MAX_LANGUAGE_ENTRIES) {
+		err("MAX_LANGUAGE_ENTRIES limit reached",
+			_i("languageid", languageid),
+			_s("key", key),
+			_s("value", value));
+		return 2;
+	}
+
+	lang_TotalEntries[languageid]++;
+
+	strcat(lang_Entries[languageid][index][LANG_KEY], key, MAX_LANGUAGE_KEY_LEN);
+	_language_doReplace(value, lang_Entries[languageid][index][LANG_VALUE]);
+
+	dbg("language", "Added language key",
+		_i("languageid", languageid),
+		_s("key", key),
+		_s("value", value));
+
+	return 0;
+}
+
+stock GetLanguageString(languageid, key[], bool:encode = false) {
+	new
+		result[MAX_LANGUAGE_ENTRY_LENGTH],
+		ret;
+
+	if(!(0 <= languageid < lang_Total)) {
+		err("invalid language",
+			_i("languageid", languageid));
+		return result;
+	}
+
+	ret = _language_stringFromKey(languageid, key, result, encode);
+
+	switch(ret) {
+		case 1: {
+			err("invalid key",
+				_s("key", key));
+		}
+		case 2: {
+			err("key not found",
+				_s("key", key),
+				_i("language", languageid));
+
+			// return english if key not found
+			if(languageid != 0) {
+				strcat(result, GetLanguageString(0, key, encode), MAX_LANGUAGE_ENTRY_LENGTH);
+			}
+		}
+	}
+
+	return result;
+}
+
+stock GetLanguageList(list[][]) {
+	for(new i; i < lang_Total; i++) {
+		list[i][0] = EOS;
+		strcat(list[i], lang_Name[i], MAX_LANGUAGE_NAME);
+	}
+
+	return lang_Total;
+}
+
+stock GetLanguageName(languageid, name[]) {
+	if(!(0 <= languageid < lang_Total)) {
+		return 1;
+	}
+
+	name[0] = EOS;
+	strcat(name, lang_Name[languageid], MAX_LANGUAGE_NAME);
+
+	return 0;
+}
+
+stock GetLanguageID(name[]) {
+	for(new i; i < lang_Total; i++) {
+		if(!strcmp(name, lang_Name[i])) {
+			return i;
+		}
+	}
+	return -1;
+}
+
+stock GetPlayerLanguage(playerid) {
+	if(!IsPlayerConnected(playerid)) {
+		return -1;
+	}
+
+	return lang_PlayerLanguage[playerid];
+}
+
+stock SetPlayerLanguage(playerid, language) {
+	if(!IsPlayerConnected(playerid)) {
+		return 1;
+	}
+
+	lang_PlayerLanguage[playerid] = language;
+
+	return 0;
+}
+
 stock LoadAllLanguages() {
 	new
 		dir:dirhandle,
@@ -128,7 +265,7 @@ stock LoadAllLanguages() {
 	}
 
 	// Force load English first since that's the default language.
-	default_entries = LoadLanguage(DEFAULT_LANGUAGE, DEFAULT_LANGUAGE);
+	default_entries = InitLanguageFromFile(DEFAULT_LANGUAGE, DEFAULT_LANGUAGE);
 	log("Default language (English) has %d entries.", default_entries);
 
 	if(default_entries == 0) {
@@ -144,7 +281,7 @@ stock LoadAllLanguages() {
 			next_path[0] = EOS;
 			format(next_path, sizeof(next_path), "%s%s", DIRECTORY_LANGUAGES, item);
 
-			entries = LoadLanguage(next_path, item);
+			entries = InitLanguageFromFile(next_path, item);
 
 			if(entries > 0) {
 				log("successfully loaded language pack",
@@ -166,155 +303,64 @@ stock LoadAllLanguages() {
 	return 1;
 }
 
-stock LoadLanguage(langname[]) {
-	if(lang_Total == MAX_LANGUAGE) {
-		err("lang_Total reached MAX_LANGUAGE",
-			_i("max", MAX_LANGUAGE));
-		return -1;
-	}
+
+// -
+// Internals
+// -
+
+
+static stock _language_stringFromKey(languageid, key[], result[], bool:encode = false) {
+	if(!('A' <= key[0] <= 'Z'))
+		return 1;
 
 	new
-		filename[256],
-		File:f,
-		line[MAX_LANGUAGE_KEY_LEN + 1 + MAX_LANGUAGE_ENTRY_LENGTH],
-		linenumber = 1,
-		bool:skip,
-		replace_me[MAX_LANGUAGE_ENTRY_LENGTH],
-		length,
-		delimiter,
-		key[MAX_LANGUAGE_KEY_LEN],
-		index;
+		index,
+		start,
+		end,
+		abindex;
 
-	format(filename, sizeof(filename), DIRECTORY_LANGUAGES"%s", langname);
-	f = fopen(filename, io_read);
+	abindex = toupper(key[0] - 65);
 
-	if(!f) {
-		err("unable to open file",
-			_s("filename", filename));
-		return -2;
+	start = lang_AlphabetMap[languageid][abindex];
+
+	if(start == -1) {
+		return 2;
 	}
 
-	while(fread(f, line)) {
-		length = strlen(line);
+	do {
+		abindex++;
 
-		if(length < 4) {
-			continue;
-		}
-
-		delimiter = 0;
-
-		while(line[delimiter] != DELIMITER_CHAR) {
-			if(!(32 <= line[delimiter] < 127)) {
-				err("language key contains non-alphabetic character",
-					_i("line", linenumber),
-					_s("file", filename),
-					_i("character", line[delimiter]));
-				skip = true;
-				break;
-			}
-
-			if(delimiter >= MAX_LANGUAGE_KEY_LEN) {
-				err("language key length too long",
-					_i("line", linenumber),
-					_s("file", filename),
-					_i("delimiter", delimiter));
-				skip = true;
-				break;
-			}
-
-			key[delimiter] = line[delimiter];
-			delimiter++;
-		}
-
-		if(skip) {
-			skip = false;
-			continue;
-		}
-
-		if(delimiter < 4) {
-			err("language key length too short",
-				_i("line", linenumber),
-				_s("file", filename),
-				_i("delimiter", delimiter));
-			continue;
-		}
-
-		if(delimiter >= length - 1) {
-			err("line contains no delimiter",
-				_i("line", linenumber),
-				_s("file", filename),
-				_i("delimiter", delimiter));
-			continue;
-		}
-
-		key[delimiter] = EOS;
-		index = lang_TotalEntries[lang_Total]++;
-
-		if(lang_TotalEntries[lang_Total] >= MAX_LANGUAGE_ENTRIES) {
-			err("MAX_LANGUAGE_ENTRIES limit reached",
-				_i("line", linenumber),
-				_s("file", filename));
+		if(abindex == ALPHABET_SIZE)
 			break;
-		}
+	}
+	while(lang_AlphabetMap[languageid][abindex] == -1);
 
-		strmid(lang_Entries[lang_Total][index][lang_key], line, 0, delimiter, MAX_LANGUAGE_ENTRY_LENGTH);
-		strmid(replace_me, line, delimiter + 1, length - 1, MAX_LANGUAGE_ENTRY_LENGTH);
-
-		_doReplace(replace_me, lang_Entries[lang_Total][index][lang_val]);
-
-		// log("Added language key '%s'", key);
-
-		linenumber++;
+	if(abindex < ALPHABET_SIZE) {
+		end = lang_AlphabetMap[languageid][abindex];
+	} else {
+		end = lang_TotalEntries[languageid];
 	}
 
-	fclose(f);
+	// start..end is now the search space
 
-	if(lang_TotalEntries[lang_Total] == 0) {
-		return -3;
+	// dumb search for now, will probably replace with bisect
+	for(index = start; index < end; index++) {
+		if(!strcmp(lang_Entries[languageid][index][LANG_KEY], key, false, MAX_LANGUAGE_ENTRY_LENGTH))
+			break;
 	}
 
-	strcat(lang_Name[lang_Total], langname, MAX_LANGUAGE_NAME);
+	if(index == end)
+		return 2;
 
-	_qs(lang_Entries[lang_Total], 0, lang_TotalEntries[lang_Total] - 1);
+	strcat(result, lang_Entries[languageid][index][LANG_VALUE], MAX_LANGUAGE_ENTRY_LENGTH);
 
-	// alphabetmap
-	new
-		this_letter,
-		letter_idx;
+	if(encode)
+		ConvertEncoding(result);
 
-	for(new i; i < lang_TotalEntries[lang_Total]; i++) {
-		this_letter = toupper(lang_Entries[lang_Total][i][lang_key][0]) - 65;
-
-		if(this_letter == letter_idx-1)
-			continue;
-
-		while(letter_idx < this_letter) {
-			lang_AlphabetMap[lang_Total][letter_idx] = -1;
-			letter_idx++;
-		}
-
-		if(letter_idx >= 26) {
-			err("letter index out of bounds",
-				_i("letter_idx", letter_idx),
-				_i("entry", i),
-				_s("entry", lang_Entries[lang_Total][i][lang_key]));
-		}
-
-		lang_AlphabetMap[lang_Total][letter_idx] = i;
-		letter_idx++;
-	}
-
-	// fill in the empty ones
-	while(letter_idx < 26) {
-		lang_AlphabetMap[lang_Total][letter_idx++] = -1;
-	}
-
-	lang_Total++;
-
-	return index + 1;
+	return 0;
 }
 
-_doReplace(input[], output[]) {
+_language_doReplace(input[], output[]) {
 	new
 		bool:in_tag = false,
 		tag_start = -1,
@@ -355,7 +401,7 @@ _doReplace(input[], output[]) {
 	}
 }
 
-_qs(array[][], left, right) {
+_language_quickSort(array[][], left, right) {
 	new
 		tempLeft = left,
 		tempRight = right,
@@ -369,8 +415,8 @@ _qs(array[][], left, right) {
 			tempRight--;
 		
 		if(tempLeft <= tempRight) {
-			_swap(array[tempLeft][lang_key], array[tempRight][lang_key]);
-			_swap(array[tempLeft][lang_val], array[tempRight][lang_val]);
+			_language_swapStrings(array[tempLeft][LANG_KEY], array[tempRight][LANG_KEY]);
+			_language_swapStrings(array[tempLeft][LANG_VALUE], array[tempRight][LANG_VALUE]);
 
 			tempLeft++;
 			tempRight--;
@@ -378,13 +424,13 @@ _qs(array[][], left, right) {
 	}
 
 	if(left < tempRight)
-		_qs(array, left, tempRight);
+		_language_quickSort(array, left, tempRight);
 
 	if(tempLeft < right)
-		_qs(array, tempLeft, right);
+		_language_quickSort(array, tempLeft, right);
 }
 
-_swap(str1[], str2[]) {
+_language_swapStrings(str1[], str2[]) {
 	new tmp;
 
 	for(new i; str1[i] != '\0' || str2[i] != '\0'; i++) {
@@ -392,89 +438,6 @@ _swap(str1[], str2[]) {
 		str1[i] = str2[i];
 		str2[i] = tmp;
 	}
-}
-
-stock GetLanguageString(languageid, key[], bool:encode = false) {
-	new
-		result[MAX_LANGUAGE_ENTRY_LENGTH],
-		ret;
-
-	if(!(0 <= languageid < lang_Total)) {
-		err("invalid language",
-			_i("languageid", languageid));
-		return result;
-	}
-
-	ret = _GetLanguageString(languageid, key, result, encode);
-
-	switch(ret) {
-		case 1: {
-			err("invalid key",
-				_s("key", key));
-		}
-		case 2: {
-			err("key not found",
-				_s("key", key),
-				_i("language", languageid));
-
-			// return english if key not found
-			if(languageid != 0)
-				strcat(result, GetLanguageString(0, key, encode), MAX_LANGUAGE_ENTRY_LENGTH);
-		}
-	}
-
-	return result;
-}
-
-static stock _GetLanguageString(languageid, key[], result[], bool:encode = false) {
-	if(!('A' <= key[0] <= 'Z'))
-		return 1;
-
-	new
-		index,
-		start,
-		end,
-		abindex;
-
-	abindex = toupper(key[0] - 65);
-
-	start = lang_AlphabetMap[languageid][abindex];
-
-	if(start == -1) {
-		return 2;
-	}
-
-	do {
-		abindex++;
-
-		if(abindex == ALPHABET_SIZE)
-			break;
-	}
-	while(lang_AlphabetMap[languageid][abindex] == -1);
-
-	if(abindex < ALPHABET_SIZE) {
-		end = lang_AlphabetMap[languageid][abindex];
-	} else {
-		end = lang_TotalEntries[languageid];
-	}
-
-	// start..end is now the search space
-
-	// dumb search for now, will probably replace with bisect
-	for(index = start; index < end; index++) {
-		if(!strcmp(lang_Entries[languageid][index][lang_key], key, false, MAX_LANGUAGE_ENTRY_LENGTH))
-			break;
-	}
-
-	if(index == end)
-		return 2;
-
-	strcat(result, lang_Entries[languageid][index][lang_val], MAX_LANGUAGE_ENTRY_LENGTH);
-
-	if(encode)
-		ConvertEncoding(result);
-
-	return 0;
 }
 
 /*
@@ -534,47 +497,140 @@ stock ConvertEncoding(string[]) {
 	}
 }
 */
-stock GetLanguageList(list[][]) {
-	for(new i; i < lang_Total; i++) {
-		list[i][0] = EOS;
-		strcat(list[i], lang_Name[i], MAX_LANGUAGE_NAME);
-	}
 
-	return lang_Total;
-}
 
-stock GetLanguageName(languageid, name[]) {
-	if(!(0 <= languageid < lang_Total))
-		return 0;
-
-	name[0] = EOS;
-	strcat(name, lang_Name[languageid], MAX_LANGUAGE_NAME);
-
-	return 1;
-}
-
-stock GetLanguageID(name[]) {
-	for(new i; i < lang_Total; i++) {
-		if(!strcmp(name, lang_Name[i]))
-			return i;
-	}
-	return -1;
-}
-
-stock GetPlayerLanguage(playerid) {
-	if(!IsPlayerConnected(playerid)) {
+stock initLanguageFromFile(langname[]) {
+	new languageid = InitLanguage(langname);
+	if(languageid == INVALID_LANGUAGE_ID) {
 		return -1;
 	}
 
-	return lang_PlayerLanguage[playerid];
-}
+	new
+		filename[256],
+		File:f,
+		line[MAX_LANGUAGE_KEY_LEN + 1 + MAX_LANGUAGE_ENTRY_LENGTH],
+		linenumber = 1,
+		bool:skip,
+		length,
+		delimiter,
+		index;
 
-stock SetPlayerLanguage(playerid, language) {
-	if(!IsPlayerConnected(playerid)) {
-		return 1;
+	format(filename, sizeof(filename), DIRECTORY_LANGUAGES"%s", langname);
+	f = fopen(filename, io_read);
+
+	if(!f) {
+		err("unable to open file",
+			_s("filename", filename));
+		return -2;
 	}
 
-	lang_PlayerLanguage[playerid] = language;
+	new
+		key[MAX_LANGUAGE_KEY_LEN],
+		val[MAX_LANGUAGE_ENTRY_LENGTH];
 
-	return 0;
+	while(fread(f, line)) {
+		length = strlen(line);
+
+		if(length < 4) {
+			continue;
+		}
+
+		delimiter = 0;
+
+		// search for the delimiter
+		while(line[delimiter] != DELIMITER_CHAR) {
+			if(!(32 <= line[delimiter] < 127)) {
+				err("language key contains non-alphabetic character",
+					_i("line", linenumber),
+					_s("file", filename),
+					_i("character", line[delimiter]));
+				skip = true;
+				break;
+			}
+
+			if(delimiter >= MAX_LANGUAGE_KEY_LEN) {
+				err("language key length too long",
+					_i("line", linenumber),
+					_s("file", filename),
+					_i("delimiter", delimiter));
+				skip = true;
+				break;
+			}
+
+			key[delimiter] = line[delimiter];
+			delimiter++;
+		}
+
+		if(skip) {
+			skip = false;
+			continue;
+		}
+
+		if(delimiter < 4) {
+			err("language key length too short",
+				_i("line", linenumber),
+				_s("file", filename),
+				_i("delimiter", delimiter));
+			continue;
+		}
+
+		if(delimiter >= length - 1) {
+			err("line contains no delimiter",
+				_i("line", linenumber),
+				_s("file", filename),
+				_i("delimiter", delimiter));
+			continue;
+		}
+
+		key[delimiter] = EOS;
+
+		strmid(key, line, 0, delimiter, MAX_LANGUAGE_ENTRY_LENGTH);
+		strmid(val, line, delimiter + 1, length - 1, MAX_LANGUAGE_ENTRY_LENGTH);
+
+		AddLanguageEntry(languageid, key, val);
+
+		linenumber++;
+	}
+
+	fclose(f);
+
+	if(lang_TotalEntries[languageid] == 0) {
+		return -3;
+	}
+
+	_language_quickSort(lang_Entries[languageid], 0, lang_TotalEntries[languageid] - 1);
+
+	// alphabetmap
+	new
+		this_letter,
+		letter_idx;
+
+	for(new i; i < lang_TotalEntries[languageid]; i++) {
+		this_letter = toupper(lang_Entries[languageid][i][LANG_KEY][0]) - 65;
+
+		if(this_letter == letter_idx-1)
+			continue;
+
+		while(letter_idx < this_letter) {
+			lang_AlphabetMap[languageid][letter_idx] = -1;
+			letter_idx++;
+		}
+
+		if(letter_idx >= 26) {
+			err("letter index out of bounds",
+				_i("letter_idx", letter_idx),
+				_i("entry", i),
+				_s("entry", lang_Entries[languageid][i][LANG_KEY]));
+		}
+
+		lang_AlphabetMap[languageid][letter_idx] = i;
+		letter_idx++;
+	}
+
+	// fill in the empty ones
+	while(letter_idx < 26) {
+		lang_AlphabetMap[languageid][letter_idx++] = -1;
+	}
+
+	return index + 1;
 }
