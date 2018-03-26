@@ -9,9 +9,10 @@
 #endif
 #define _language_included
 
-#include <YSI\y_hooks>
 #include <string>
+#include <map>
 #include <logger>
+#include <YSI\y_hooks>
 
 
 // the directory language data is stored
@@ -36,7 +37,7 @@
 
 // the maximum length of a language key
 #if !defined MAX_LANGUAGE_KEY_LEN
-	#define MAX_LANGUAGE_KEY_LEN (12)
+	#define MAX_LANGUAGE_KEY_LEN (32)
 #endif
 
 // the maximum length of a language text entry
@@ -62,9 +63,6 @@
 // delimiter for language data files
 #define DELIMITER_CHAR '='
 
-// size for alphabet map - base is English
-#define ALPHABET_SIZE (26)
-
 #define INVALID_LANGUAGE_ID (-1)
 
 // @L is shorthand for getting a language string for a given player
@@ -84,15 +82,12 @@ enum e_LANGUAGE_TAG_ALIAS_DATA {
 
 
 static
-	lang_Entries[MAX_LANGUAGE][MAX_LANGUAGE_ENTRIES][e_LANGUAGE_ENTRY_DATA],
-	lang_TotalEntries[MAX_LANGUAGE],
-	lang_AlphabetMap[MAX_LANGUAGE][ALPHABET_SIZE],
+	lang_Name[MAX_LANGUAGE][MAX_LANGUAGE_NAME],
+	Map:lang_Map[MAX_LANGUAGE],
+	lang_Total,
 
 	lang_Replacements[MAX_LANGUAGE_ALIASES][e_LANGUAGE_TAG_ALIAS_DATA],
 	lang_TotalReplacements,
-
-	lang_Name[MAX_LANGUAGE][MAX_LANGUAGE_NAME],
-	lang_Total,
 
 	lang_PlayerLanguage[MAX_PLAYERS];
 
@@ -131,6 +126,10 @@ stock InitLanguage(name[]) {
 
 	strcat(lang_Name[lang_Total], name, MAX_LANGUAGE_NAME);
 
+	dbg("language", "initialised language",
+		_s("name", name),
+		_i("id", lang_Total));
+
 	return lang_Total++;
 }
 
@@ -154,20 +153,28 @@ stock AddLanguageEntry(languageid, key[], value[]) {
 		return 1;
 	}
 
-	new index = lang_TotalEntries[languageid];
+	if(isnull(key)) {
+		err("null key specified");
+		return 2;
+	}
 
-	if(lang_TotalEntries[languageid] >= MAX_LANGUAGE_ENTRIES) {
+	if(isnull(value)) {
+		err("null value specified",
+			_s("key", key));
+		return 3;
+	}
+
+	if(MAP_count(lang_Map[languageid]) >= MAX_LANGUAGE_ENTRIES) {
 		err("MAX_LANGUAGE_ENTRIES limit reached",
 			_i("languageid", languageid),
 			_s("key", key),
 			_s("value", value));
-		return 2;
+		return 4;
 	}
 
-	lang_TotalEntries[languageid]++;
-
-	strcat(lang_Entries[languageid][index][LANG_KEY], key, MAX_LANGUAGE_KEY_LEN);
-	_language_doReplace(value, lang_Entries[languageid][index][LANG_VALUE]);
+	new replaced[MAX_LANGUAGE_ENTRY_LENGTH];
+	_language_doReplace(value, replaced);
+	MAP_insert_str_str(lang_Map[languageid], key, replaced);
 
 	dbg("language", "Added language key",
 		_i("languageid", languageid),
@@ -188,7 +195,7 @@ stock GetLanguageString(languageid, key[], bool:encode = false) {
 		return result;
 	}
 
-	ret = _language_stringFromKey(languageid, key, result, encode);
+	ret = _language_stringFromKey(languageid, key, result, sizeof(result), encode);
 
 	switch(ret) {
 		case 1: {
@@ -322,53 +329,16 @@ stock LoadAllLanguages() {
 // -
 
 
-static stock _language_stringFromKey(languageid, key[], result[], bool:encode = false) {
-	if(!('A' <= key[0] <= 'Z'))
+stock _language_stringFromKey(languageid, key[], result[], len = sizeof(result), bool:encode = false) {
+	if(!MAP_contains_str(lang_Map[languageid], key)) {
 		return 1;
-
-	new
-		index,
-		start,
-		end,
-		abindex;
-
-	abindex = toupper(key[0] - 65);
-
-	start = lang_AlphabetMap[languageid][abindex];
-
-	if(start == -1) {
-		return 2;
 	}
 
-	do {
-		abindex++;
+	MAP_get_str_arr(lang_Map[languageid], key, result, len);
 
-		if(abindex == ALPHABET_SIZE)
-			break;
-	}
-	while(lang_AlphabetMap[languageid][abindex] == -1);
-
-	if(abindex < ALPHABET_SIZE) {
-		end = lang_AlphabetMap[languageid][abindex];
-	} else {
-		end = lang_TotalEntries[languageid];
-	}
-
-	// start..end is now the search space
-
-	// dumb search for now, will probably replace with bisect
-	for(index = start; index < end; index++) {
-		if(!strcmp(lang_Entries[languageid][index][LANG_KEY], key, false, MAX_LANGUAGE_ENTRY_LENGTH))
-			break;
-	}
-
-	if(index == end)
-		return 2;
-
-	strcat(result, lang_Entries[languageid][index][LANG_VALUE], MAX_LANGUAGE_ENTRY_LENGTH);
-
-	if(encode)
+	if(encode) {
 		ConvertEncoding(result);
+	}
 
 	return 0;
 }
