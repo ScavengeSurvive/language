@@ -105,18 +105,16 @@ stock DefineLanguageReplacement(key[], val[]) {
 }
 
 stock InitLanguage(name[]) {
+	for(new languageid ; languageid < lang_Total; ++languageid) {
+		if(!strcmp(lang_Name[languageid], name)) {
+			return languageid;
+		}
+	}
+
 	if(lang_Total == MAX_LANGUAGE) {
 		err("lang_Total reached MAX_LANGUAGE",
 			_i("max", MAX_LANGUAGE));
 		return INVALID_LANGUAGE_ID;
-	}
-
-	new
-		languageid;
-	for( ; languageid < lang_Total; ++languageid) {
-		if(!strcmp(lang_Name[languageid], name)) {
-			return languageid;
-		}
 	}
 
 	strcat(lang_Name[lang_Total], name, MAX_LANGUAGE_NAME);
