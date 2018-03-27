@@ -112,16 +112,11 @@ stock InitLanguage(name[]) {
 	}
 
 	new
-		bool:exists,
 		languageid;
 	for( ; languageid < lang_Total; ++languageid) {
 		if(!strcmp(lang_Name[languageid], name)) {
-			exists = true;
+			return languageid;
 		}
-	}
-
-	if(exists) {
-		return languageid;
 	}
 
 	strcat(lang_Name[lang_Total], name, MAX_LANGUAGE_NAME);
