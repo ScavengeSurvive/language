@@ -260,7 +260,7 @@ stock SetPlayerLanguage(playerid, language) {
 stock LoadAllLanguages() {
 	new
 		dir:dirhandle,
-		directory_with_root[256] = DIRECTORY_SCRIPTFILES,
+		directory_with_root[256],
 		item[64],
 		type,
 		next_path[256],
