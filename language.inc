@@ -511,43 +511,5 @@ stock initLanguageFromFile(langname[]) {
 
 	fclose(f);
 
-	if(lang_TotalEntries[languageid] == 0) {
-		return -3;
-	}
-
-	_language_quickSort(lang_Entries[languageid], 0, lang_TotalEntries[languageid] - 1);
-
-	// alphabetmap
-	new
-		this_letter,
-		letter_idx;
-
-	for(new i; i < lang_TotalEntries[languageid]; i++) {
-		this_letter = toupper(lang_Entries[languageid][i][LANG_KEY][0]) - 65;
-
-		if(this_letter == letter_idx-1)
-			continue;
-
-		while(letter_idx < this_letter) {
-			lang_AlphabetMap[languageid][letter_idx] = -1;
-			letter_idx++;
-		}
-
-		if(letter_idx >= 26) {
-			err("letter index out of bounds",
-				_i("letter_idx", letter_idx),
-				_i("entry", i),
-				_s("entry", lang_Entries[languageid][i][LANG_KEY]));
-		}
-
-		lang_AlphabetMap[languageid][letter_idx] = i;
-		letter_idx++;
-	}
-
-	// fill in the empty ones
-	while(letter_idx < 26) {
-		lang_AlphabetMap[languageid][letter_idx++] = -1;
-	}
-
 	return index + 1;
 }
