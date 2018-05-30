@@ -10,8 +10,9 @@
 #define _language_included
 
 #include <string>
-#include <map>
 #include <logger>
+#include <map>
+#include <fsutil>
 #include <YSI\y_hooks>
 
 
@@ -102,6 +103,32 @@ stock DefineLanguageReplacement(key[], val[]) {
 	strcat(lang_Replacements[lang_TotalReplacements][lang_alias_val], val, MAX_LANGUAGE_ALIAS_VAL_LEN);
 
 	lang_TotalReplacements++;
+}
+
+stock InitLanguages() {
+	new
+		Directory:dir = OpenDir("./scriptfiles/"DIRECTORY_LANGUAGES),
+		entry[256],
+		ENTRY_TYPE:type,
+		name[64];
+
+	while(DirNext(dir, type, entry)) {
+		if(type == E_REGULAR) {
+			PathBase(entry, name);
+
+			dbg("language", "loading language file",
+				_s("entry", entry),
+				_s("name", name));
+
+			new id = InitLanguageFromFile(name);
+			if(id == -1) {
+				err("failed to load language",
+					_s("name", name));
+			}
+		}
+	}
+
+	CloseDir(dir);
 }
 
 stock InitLanguage(name[]) {

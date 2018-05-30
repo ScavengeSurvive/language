@@ -7,9 +7,13 @@
 		"sampctl/samp-stdlib",
 		"Southclaws/samp-logger",
 		"pawn-lang/YSI-Includes",
-		"BigETI/pawn-map"
+		"BigETI/pawn-map",
+		"Southclaws/pawn-fsutil:1.0.3"
 	],
 	"runtime": {
-		"mode": "y_testing"
+		"version": "0.3.7",
+		"mode": "y_testing",
+		"rcon_password": "password",
+		"port": 7777
 	}
 }
