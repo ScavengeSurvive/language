@@ -13,7 +13,7 @@
 #include <logger>
 #include <map>
 #include <fsutil>
-#include <YSI\y_hooks>
+#include <YSI_Coding\y_hooks>
 
 
 // the directory language data is stored
@@ -98,13 +98,6 @@ hook OnPlayerConnect(playerid) {
 	return Y_HOOKS_CONTINUE_RETURN_1;
 }
 
-stock DefineLanguageReplacement(key[], val[]) {
-	strcat(lang_Replacements[lang_TotalReplacements][lang_alias_key], key, MAX_LANGUAGE_ALIAS_KEY_LEN);
-	strcat(lang_Replacements[lang_TotalReplacements][lang_alias_val], val, MAX_LANGUAGE_ALIAS_VAL_LEN);
-
-	lang_TotalReplacements++;
-}
-
 stock InitLanguages() {
 	new
 		Directory:dir = OpenDir("./scriptfiles/"DIRECTORY_LANGUAGES),
@@ -131,7 +124,7 @@ stock InitLanguages() {
 	CloseDir(dir);
 }
 
-stock InitLanguage(name[]) {
+stock InitLanguage(const name[]) {
 	for(new languageid ; languageid < lang_Total; ++languageid) {
 		if(!strcmp(lang_Name[languageid], name)) {
 			return languageid;
@@ -153,7 +146,7 @@ stock InitLanguage(name[]) {
 	return lang_Total++;
 }
 
-stock InitLanguageFromFile(langname[]) {
+stock InitLanguageFromFile(const langname[]) {
 	new ret = initLanguageFromFile(langname);
 	// if we had a failure that wasn't caused by InitLanguage
 	// roll back lang_Total so a slot isn't used up.
@@ -164,7 +157,7 @@ stock InitLanguageFromFile(langname[]) {
 	return ret;
 }
 
-stock AddLanguageEntry(languageid, key[], value[]) {
+stock AddLanguageEntry(languageid, const key[], const value[]) {
 	if(!(0 <= languageid < lang_Total)) {
 		err("attempt to add entry to invalid language",
 			_i("languageid", languageid),
@@ -204,7 +197,7 @@ stock AddLanguageEntry(languageid, key[], value[]) {
 	return 0;
 }
 
-stock GetLanguageString(languageid, key[], bool:encode = false) {
+stock GetLanguageString(languageid, const key[], bool:encode = false) {
 	new
 		result[MAX_LANGUAGE_ENTRY_LENGTH],
 		ret;
@@ -290,7 +283,7 @@ stock SetPlayerLanguage(playerid, language) {
 // -
 
 
-stock _language_stringFromKey(languageid, key[], result[], len = sizeof(result), bool:encode = false) {
+stock _language_stringFromKey(languageid, const key[], result[], len = sizeof(result), bool:encode = false) {
 	if(!MAP_contains_str(lang_Map[languageid], key)) {
 		return 1;
 	}
@@ -304,7 +297,7 @@ stock _language_stringFromKey(languageid, key[], result[], len = sizeof(result),
 	return 0;
 }
 
-_language_doReplace(input[], output[]) {
+_language_doReplace(const input[], output[]) {
 	new
 		bool:in_tag = false,
 		tag_start = -1,
@@ -443,7 +436,7 @@ stock ConvertEncoding(string[]) {
 */
 
 
-stock initLanguageFromFile(langname[]) {
+stock initLanguageFromFile(const langname[]) {
 	new languageid = InitLanguage(langname);
 	if(languageid == INVALID_LANGUAGE_ID) {
 		return -1;
