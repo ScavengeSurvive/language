@@ -13,7 +13,7 @@
 #include <logger>
 #include <map>
 #include <fsutil>
-#include <YSI\y_hooks>
+#include <YSI_Coding\y_hooks>
 
 
 // the directory language data is stored
@@ -204,7 +204,7 @@ stock AddLanguageEntry(languageid, key[], value[]) {
 	return 0;
 }
 
-stock GetLanguageString(languageid, key[], bool:encode = false) {
+stock GetLanguageString(languageid, const key[], bool:encode = false) {
 	new
 		result[MAX_LANGUAGE_ENTRY_LENGTH],
 		ret;
@@ -290,7 +290,7 @@ stock SetPlayerLanguage(playerid, language) {
 // -
 
 
-stock _language_stringFromKey(languageid, key[], result[], len = sizeof(result), bool:encode = false) {
+stock _language_stringFromKey(languageid, const key[], result[], len = sizeof(result), bool:encode = false) {
 	if(!MAP_contains_str(lang_Map[languageid], key)) {
 		return 1;
 	}
