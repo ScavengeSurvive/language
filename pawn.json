@@ -8,7 +8,7 @@
 		"Southclaws/samp-logger",
 		"pawn-lang/YSI-Includes",
 		"BigETI/pawn-map",
-		"Southclaws/pawn-fsutil:1.0.3"
+		"Southclaws/pawn-fsutil"
 	],
 	"runtime": {
 		"version": "0.3.7",
