@@ -116,14 +116,14 @@ stock InitLanguages() {
 		if(type == E_REGULAR) {
 			PathBase(entry, name);
 
-			dbg("language", "loading language file",
-				_s("entry", entry),
-				_s("name", name));
+			Logger_Dbg("language", "loading language file",
+				Logger_S("entry", entry),
+				Logger_S("name", name));
 
 			new id = InitLanguageFromFile(name);
 			if(id == -1) {
-				err("failed to load language",
-					_s("name", name));
+				Logger_Err("failed to load language",
+					Logger_S("name", name));
 			}
 		}
 	}
@@ -139,16 +139,16 @@ stock InitLanguage(name[]) {
 	}
 
 	if(lang_Total == MAX_LANGUAGE) {
-		err("lang_Total reached MAX_LANGUAGE",
-			_i("max", MAX_LANGUAGE));
+		Logger_Err("lang_Total reached MAX_LANGUAGE",
+			Logger_I("max", MAX_LANGUAGE));
 		return INVALID_LANGUAGE_ID;
 	}
 
 	strcat(lang_Name[lang_Total], name, MAX_LANGUAGE_NAME);
 
-	dbg("language", "initialised language",
-		_s("name", name),
-		_i("id", lang_Total));
+	Logger_Dbg("language", "initialised language",
+		Logger_S("name", name),
+		Logger_I("id", lang_Total));
 
 	return lang_Total++;
 }
@@ -166,29 +166,29 @@ stock InitLanguageFromFile(langname[]) {
 
 stock AddLanguageEntry(languageid, key[], value[]) {
 	if(!(0 <= languageid < lang_Total)) {
-		err("attempt to add entry to invalid language",
-			_i("languageid", languageid),
-			_s("key", key),
-			_s("value", value));
+		Logger_Err("attempt to add entry to invalid language",
+			Logger_I("languageid", languageid),
+			Logger_S("key", key),
+			Logger_S("value", value));
 		return 1;
 	}
 
 	if(isnull(key)) {
-		err("null key specified");
+		Logger_Err("null key specified");
 		return 2;
 	}
 
 	if(isnull(value)) {
-		err("null value specified",
-			_s("key", key));
+		Logger_Err("null value specified",
+			Logger_S("key", key));
 		return 3;
 	}
 
 	if(MAP_count(lang_Map[languageid]) >= MAX_LANGUAGE_ENTRIES) {
-		err("MAX_LANGUAGE_ENTRIES limit reached",
-			_i("languageid", languageid),
-			_s("key", key),
-			_s("value", value));
+		Logger_Err("MAX_LANGUAGE_ENTRIES limit reached",
+			Logger_I("languageid", languageid),
+			Logger_S("key", key),
+			Logger_S("value", value));
 		return 4;
 	}
 
@@ -196,10 +196,10 @@ stock AddLanguageEntry(languageid, key[], value[]) {
 	_language_doReplace(value, replaced);
 	MAP_insert_str_str(lang_Map[languageid], key, replaced);
 
-	dbg("language", "Added language key",
-		_i("languageid", languageid),
-		_s("key", key),
-		_s("value", value));
+	Logger_Dbg("language", "Added language key",
+		Logger_I("languageid", languageid),
+		Logger_S("key", key),
+		Logger_S("value", value));
 
 	return 0;
 }
@@ -210,8 +210,8 @@ stock GetLanguageString(languageid, const key[], bool:encode = false) {
 		ret;
 
 	if(!(0 <= languageid < lang_Total)) {
-		err("invalid language",
-			_i("languageid", languageid));
+		Logger_Err("invalid language",
+			Logger_I("languageid", languageid));
 		return result;
 	}
 
@@ -219,13 +219,13 @@ stock GetLanguageString(languageid, const key[], bool:encode = false) {
 
 	switch(ret) {
 		case 1: {
-			err("invalid key",
-				_s("key", key));
+			Logger_Err("invalid key",
+				Logger_S("key", key));
 		}
 		case 2: {
-			err("key not found",
-				_s("key", key),
-				_i("language", languageid));
+			Logger_Err("key not found",
+				Logger_S("key", key),
+				Logger_I("language", languageid));
 
 			// return english if key not found
 			if(languageid != 0) {
@@ -463,8 +463,8 @@ stock initLanguageFromFile(langname[]) {
 	f = fopen(filename, io_read);
 
 	if(!f) {
-		err("unable to open file",
-			_s("filename", filename));
+		Logger_Err("unable to open file",
+			Logger_S("filename", filename));
 		return -2;
 	}
 
@@ -484,19 +484,19 @@ stock initLanguageFromFile(langname[]) {
 		// search for the delimiter
 		while(line[delimiter] != DELIMITER_CHAR) {
 			if(!(32 <= line[delimiter] < 127)) {
-				err("language key contains non-alphabetic character",
-					_i("line", linenumber),
-					_s("file", filename),
-					_i("character", line[delimiter]));
+				Logger_Err("language key contains non-alphabetic character",
+					Logger_I("line", linenumber),
+					Logger_S("file", filename),
+					Logger_I("character", line[delimiter]));
 				skip = true;
 				break;
 			}
 
 			if(delimiter >= MAX_LANGUAGE_KEY_LEN) {
-				err("language key length too long",
-					_i("line", linenumber),
-					_s("file", filename),
-					_i("delimiter", delimiter));
+				Logger_Err("language key length too long",
+					Logger_I("line", linenumber),
+					Logger_S("file", filename),
+					Logger_I("delimiter", delimiter));
 				skip = true;
 				break;
 			}
@@ -511,18 +511,18 @@ stock initLanguageFromFile(langname[]) {
 		}
 
 		if(delimiter < 4) {
-			err("language key length too short",
-				_i("line", linenumber),
-				_s("file", filename),
-				_i("delimiter", delimiter));
+			Logger_Err("language key length too short",
+				Logger_I("line", linenumber),
+				Logger_S("file", filename),
+				Logger_I("delimiter", delimiter));
 			continue;
 		}
 
 		if(delimiter >= length - 1) {
-			err("line contains no delimiter",
-				_i("line", linenumber),
-				_s("file", filename),
-				_i("delimiter", delimiter));
+			Logger_Err("line contains no delimiter",
+				Logger_I("line", linenumber),
+				Logger_S("file", filename),
+				Logger_I("delimiter", delimiter));
 			continue;
 		}
 
