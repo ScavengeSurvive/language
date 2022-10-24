@@ -95,7 +95,7 @@ static
 
 hook OnPlayerConnect(playerid) {
 	lang_PlayerLanguage[playerid] = 0;
-	return Y_HOOKS_CONTINUE_RETURN_1;
+	return 1;
 }
 
 stock DefineLanguageReplacement(key[], val[]) {
