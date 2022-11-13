@@ -131,7 +131,7 @@ stock InitLanguages() {
 	CloseDir(dir);
 }
 
-stock InitLanguage(name[]) {
+stock InitLanguage(const name[]) {
 	for(new languageid ; languageid < lang_Total; ++languageid) {
 		if(!strcmp(lang_Name[languageid], name)) {
 			return languageid;
@@ -164,7 +164,7 @@ stock InitLanguageFromFile(langname[]) {
 	return ret;
 }
 
-stock AddLanguageEntry(languageid, key[], value[]) {
+stock AddLanguageEntry(languageid, const key[], const value[]) {
 	if(!(0 <= languageid < lang_Total)) {
 		Logger_Err("attempt to add entry to invalid language",
 			Logger_I("languageid", languageid),
@@ -304,7 +304,7 @@ stock _language_stringFromKey(languageid, const key[], result[], len = sizeof(re
 	return 0;
 }
 
-_language_doReplace(input[], output[]) {
+_language_doReplace(const input[], output[]) {
 	new
 		bool:in_tag = false,
 		tag_start = -1,
