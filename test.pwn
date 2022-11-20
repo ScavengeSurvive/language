@@ -3,13 +3,13 @@
 #include "language.inc"
 
 #define RUN_TESTS
-#include <YSI\y_testing>
-#include <YSI\y_hooks>
+#include <YSI_Core\y_testing>
+#include <YSI_Coding\y_hooks>
 
 
 hook OnScriptInit() {
-	logger_debug("language", true);
-	dbg("language", "language debugging activated");
+	Logger_ToggleDebug("language", true);
+	Logger_Dbg("language", "language debugging activated");
 }
 
 Test:InitLanguages() {
