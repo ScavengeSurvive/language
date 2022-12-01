@@ -98,7 +98,7 @@ hook OnPlayerConnect(playerid) {
 	return 1;
 }
 
-stock DefineLanguageReplacement(key[], val[]) {
+stock DefineLanguageReplacement(const key[], const val[]) {
 	strcat(lang_Replacements[lang_TotalReplacements][lang_alias_key], key, MAX_LANGUAGE_ALIAS_KEY_LEN);
 	strcat(lang_Replacements[lang_TotalReplacements][lang_alias_val], val, MAX_LANGUAGE_ALIAS_VAL_LEN);
 
@@ -153,7 +153,7 @@ stock InitLanguage(const name[]) {
 	return lang_Total++;
 }
 
-stock InitLanguageFromFile(langname[]) {
+stock InitLanguageFromFile(const langname[]) {
 	new ret = initLanguageFromFile(langname);
 	// if we had a failure that wasn't caused by InitLanguage
 	// roll back lang_Total so a slot isn't used up.
@@ -257,7 +257,7 @@ stock GetLanguageName(languageid, name[]) {
 	return 0;
 }
 
-stock GetLanguageID(name[]) {
+stock GetLanguageID(const name[]) {
 	for(new i; i < lang_Total; i++) {
 		if(!strcmp(name, lang_Name[i])) {
 			return i;
@@ -443,7 +443,7 @@ stock ConvertEncoding(string[]) {
 */
 
 
-stock initLanguageFromFile(langname[]) {
+stock initLanguageFromFile(const langname[]) {
 	new languageid = InitLanguage(langname);
 	if(languageid == INVALID_LANGUAGE_ID) {
 		return -1;
